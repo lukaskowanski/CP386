@@ -1,6 +1,7 @@
 // Assignment Average
 // Libraries
+#include <stdio.h>
 
-void agnmt_avg_getter() {}
+void calculate_avg() {}
 
 void main() {}
