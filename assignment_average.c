@@ -2,6 +2,9 @@
 // Libraries
 #include <stdio.h>
 
-void calculate_avg() {}
+void calculate_avg() {
+
+
+}
 
 void main() {}
