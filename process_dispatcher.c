@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 
 int dispatch_process(char filename[]) {
     // Parent dispatches children to read and process a given
@@ -50,18 +51,32 @@ int dispatch_process(char filename[]) {
     }
 
     // Manager child process for reading the file
-    if (pid == 0) {
+    else if (pid == 0) {
         // -- Manager child process --
         // child pipes process to parent
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[0]);
         close(pipefd[1]);
 
-        // manager child stuff
-        // execlp();
-
         // Child process forks to grandchild
-        // pid_t child_pid = fork();
+        pid_t child_pid = fork();
+        if (child_pid < 0) {
+            perror("fork failed");
+            exit(1);
+        }
+
+        else if (child_pid == 0) {
+            // grandchild process
+
+        } else {
+            // continue child process
+            
+            wait(NULL);
+
+            // manager child stuff
+            // execlp();
+            
+        }
 
     } else {
         // -- Parent process --
@@ -71,6 +86,8 @@ int dispatch_process(char filename[]) {
         close(pipefd[1]);
 
         // Parental stuff
+        wait(NULL);
+
 
         exit(1);
     }
@@ -84,6 +101,7 @@ int dispatch_process(char filename[]) {
 }
 
 int main() {
-    dispatch_process("test.txt");
+    dispatch_process("test_pd.txt");
+
     return 0;
 }
