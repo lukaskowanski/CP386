@@ -1,14 +1,13 @@
 // Assignment Average
 // Libraries
 #include <stdio.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
 // Global variables
 #define MAXROWS 100
-#define MAXCOLS 10
+#define MAXCOLS 20
 
 int calculate_avg(char *assignment_name) {
     // Calculates the average grade for each assignment for all chapters using
@@ -26,11 +25,11 @@ int calculate_avg(char *assignment_name) {
     int num_cols = 0;
     char line[1024];
 
-    while (fgets(line, sizeof(line), fp) != NULL) {
+    while (fgets(line, sizeof(line), fp) != NULL && num_rows < MAXROWS) {
         int offset = 0, scanned = 0, val;
         int col = 0;
         
-        while (sscanf(line + offset, "%d%n", &val, &scanned) == 1) {
+        while (sscanf(line + offset, "%d%n", &val, &scanned) == 1 && col < MAXCOLS) {
             matrix[num_rows][col] = val;
             offset += scanned;
             col++;
@@ -67,9 +66,9 @@ int calculate_avg(char *assignment_name) {
 
         // Reading chapter data
         int chapter_data[MAXROWS][2];
-        for (int i = 0; i < num_rows; i++) {
-            read(pipe_t2g[0], &chapter_data[i][0], sizeof(int));
-            read(pipe_t2g[0], &chapter_data[i][1], sizeof(int));
+        for (int r = 0; r < num_rows; r++) {
+            read(pipe_t2g[0], &chapter_data[r][0], sizeof(int));
+            read(pipe_t2g[0], &chapter_data[r][1], sizeof(int));
         }
         close(pipe_t2g[0]);
 
@@ -135,19 +134,19 @@ int calculate_avg(char *assignment_name) {
             write(pipe_t2g[1], &matrix[r][ i * 2 + 1], sizeof(int));
         }
         close(pipe_t2g[1]);
-        }
-    }
-
-    // Teacher waits for all gtas to finish
-    for (int i = 0; i < num_chapters; i++) {
         wait(NULL);
+        }
     }
 
     return 0;
 }
 
-int main() {
-    calculate_avg("sample_in_grades.txt");
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <grades file>\n", argv[0]); 
+        return 1;
+    }
+    calculate_avg(argv[1]);
 
     return 0;
 }
