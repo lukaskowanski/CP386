@@ -10,6 +10,19 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
+static int writeOutput(const char *command, const char *output) {
+    FILE *fp = fopen("output.txt", "a");
+    if (fp == NULL) {
+        perror("fopen");
+        return -1;
+    }
+    fprintf(fp, "The output of: %s is\n", command);
+    fprintf(fp, ">>>>>>>>>>>>>>>\n%s<<<<<<<<<<<<<<<\n", output);
+    fclose(fp);
+    return 0;
+
+}
+
 int dispatch_process(char filename[]) {
     // Parent dispatches children to read and process a given
     // file using shared virtual memory and pipeline techniques
@@ -74,22 +87,28 @@ int dispatch_process(char filename[]) {
         struct stat filestat;
         if (fstat(fp, &filestat) == -1) {
             perror("Error getting file size");
+            fclose(fp);
             exit(1);
         }
         size_t f_size = filestat.st_size;
 
-        // Finally reading file
-        // ssize_t bytes_read = read(fp, ptr, f_size);
-        // if (bytes_read == -1) {
-        //     perror("Error reading file into memory");
-        //     exit(1);
-        // }
+        // Clearing memory first
+        munmap(ptr, f_size);
 
-        char *line = NULL;
-        ssize_t read;
+        // Reading file...
+        char line[256];
+        size_t current_offset = 0;
 
-        while ((read = getline(&line, f_size, fp)) != -1) {
-            printf("%s", line);
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            size_t len = strlen(line);
+
+            if (current_offset + len >= f_size) {
+                break;
+            }
+
+            // Copying lines to shared memory
+            memcpy(ptr + current_offset, line, len);
+            current_offset += len;
         }
          
         /* Read file line by line, than fork to grandchild to execute linux line. 
@@ -104,15 +123,16 @@ int dispatch_process(char filename[]) {
 
         else if (child_pid == 0) {
             // grandchild process
+            // Executes linux lines read from file
+
+            exec(&ptr);
 
         } else {
             // continue child process
             
             wait(NULL);
 
-            // manager child stuff
-            // execlp();
-            
+            // manager child stuff            
         }
 
     } else {
@@ -122,10 +142,18 @@ int dispatch_process(char filename[]) {
         close(pipefd[0]);
         close(pipefd[1]);
 
-        // Parental stuff
+        // Opening new output file to write results into
+        FILE *ofp = fopen("output.txt", "w");
+        if (ofp == NULL) {
+            perror("Output file failed to open");
+            exit(1);
+        }
+
+        // Writing to output file...
+        
         wait(NULL);
 
-
+        fclose(ofp);
         exit(1);
     }
 
