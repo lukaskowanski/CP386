@@ -292,8 +292,8 @@ int dispatch_process(char filename[]) {
         static char output[BUF_SIZE + 1];
         size_t len = 0;
         ssize_t n;
-        while (len < BUF_SIZE && (n = read(result_pipe[0], output + len, BUF_SIZE - len)) > 0) {
-            len += 0;
+        while (len < BUF_SIZE - 1 && (n = read(result_pipe[0], output + len, BUF_SIZE - len - 1)) > 0) {
+            len += (size_t)n;
         }
         output[len] = '\0';
         close(result_pipe[0]);
