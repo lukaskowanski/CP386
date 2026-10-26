@@ -43,10 +43,10 @@ int calculate_avg(char *assignment_name) {
     }
     fclose(fp);
 
-    // 2 assignments per chapter
-    int num_chapters = num_cols / 2;
+    // 2 assignments per chapter, optional 1 assignment for the last chapter
+    int num_chapters = (num_cols + 1) / 2;
 
-    // Teacher inits gtas via fork (dynamically)
+    // Teacher inits GTAs via fork (dynamically)
     for (int i = 0; i < num_chapters; i++) {
         int pipe_t2g[2];
         if (pipe(pipe_t2g) == -1) {
@@ -61,26 +61,28 @@ int calculate_avg(char *assignment_name) {
     }
 
     if (gpid == 0) {
-        // Gradta process (child)
+        // GTA process (child)
         close(pipe_t2g[1]); // Closing write
 
-        // Reading chapter data
+        // Accommodate odd number of assignments/columns
+        // by reading chapter data (2 columns, optional 1 column for the last chapter)
         int chapter_data[MAXROWS][2];
         for (int r = 0; r < num_rows; r++) {
-            read(pipe_t2g[0], &chapter_data[r][0], sizeof(int));
-            read(pipe_t2g[0], &chapter_data[r][1], sizeof(int));
+            for (int j = 0; j < 2 && i * 2 + j < num_cols; j++) {
+                read(pipe_t2g[0], &chapter_data[r][j], sizeof(int));
+            }
         }
         close(pipe_t2g[0]);
 
-        // Each gta creates 2 ta processes
-        for (int j = 0; j < 2; j++) {
+        // Each GTA creates 2 TA processes (optional 1 TA process for the last chapter)
+        for (int j = 0; j < 2 && i * 2 + j < num_cols; j++) {
             int pipe_g2ta[2];
             if (pipe(pipe_g2ta) == -1) {
                 perror("pipe filed");
                 exit(1);
             }
 
-            // Gta forks to ta
+            // GTA forks to TA
             pid_t tapid = fork();
             if (tapid < 0) {
                 perror("fork failed");
@@ -88,7 +90,7 @@ int calculate_avg(char *assignment_name) {
             }
 
             if (tapid == 0) {
-                // Ta process (grandchild)
+                // TA process (grandchild)
                 close(pipe_g2ta[1]); // Close write
 
                 int assignment_grades[MAXROWS];
@@ -111,7 +113,7 @@ int calculate_avg(char *assignment_name) {
                 exit(0);
 
             } else {
-                // continue gta (child) process
+                // Continue GTA (child) process
                 close(pipe_g2ta[0]);
 
                 // Send assignment column data to TA
@@ -128,10 +130,11 @@ int calculate_avg(char *assignment_name) {
         // Teacher process (parent)
         close(pipe_t2g[0]); // Close reading
 
-        // Sending 2 cols per chapter to gta
+        // Sending 2 columns per chapter to GTA (optional 1 for the last chapter)
         for (int r = 0; r < num_rows; r++) {
-            write(pipe_t2g[1], &matrix[r][i * 2], sizeof(int));
-            write(pipe_t2g[1], &matrix[r][ i * 2 + 1], sizeof(int));
+            for (int j = 0; j < 2 && i * 2 + j < num_cols; j++) {
+                write(pipe_t2g[1], &matrix[r][i * 2 + j], sizeof(int));
+            }
         }
         close(pipe_t2g[1]);
         wait(NULL);
