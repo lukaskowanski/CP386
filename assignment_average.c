@@ -64,8 +64,8 @@ int calculate_avg(char *assignment_name) {
         // GTA process (child)
         close(pipe_t2g[1]); // Closing write
 
-        // accommodate odd number of assignments/columns
-        // by reading chapter data (2 columns, optioanl 1 column for the last chapter)
+        // Accommodate odd number of assignments/columns
+        // by reading chapter data (2 columns, optional 1 column for the last chapter)
         int chapter_data[MAXROWS][2];
         for (int r = 0; r < num_rows; r++) {
             for (int j = 0; j < 2 && i * 2 + j < num_cols; j++) {
@@ -147,13 +147,11 @@ int calculate_avg(char *assignment_name) {
 int main(int argc, char *argv[]) {
     // Fix autograder error: missing input filename prints usage (no filename given)
     if (argc != 2) {
-        // Lukas
-        // printf("Usage: %s <grades file>\n", argv[0]);
         printf("Usage: ./assignment_average [sample_in_grades.txt]\n");
         return 1;
     }
 
-    // Fix autograder error: filename given but cannot open (missing file, wrong name, no permission)
+    // Fix autograder error: failed to access input file
     FILE *fp = fopen(argv[1], "r");
     if (fp == NULL) {
         printf("Failed to access %s\n", argv[1]);
