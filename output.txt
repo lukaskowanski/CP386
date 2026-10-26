@@ -1,13 +1,13 @@
 The output of: echo Hello_from_single_command : is
 >>>>>>>>>>>>>>>
 Hello_from_single_command
-[Process statuc]
+[Process status]
 Stage 1 (echo): exit 0
 <<<<<<<<<<<<<<<
 The output of: echo one two three four | wc -w : is
 >>>>>>>>>>>>>>>
 4
-[Process statuc]
+[Process status]
 Stage 1 (echo): exit 0
 Stage 2 (wc): exit 0
 <<<<<<<<<<<<<<<
@@ -16,26 +16,26 @@ The output of: seq 3 5 | sort -r : is
 5
 4
 3
-[Process statuc]
+[Process status]
 Stage 1 (seq): exit 0
 Stage 2 (sort): exit 0
 <<<<<<<<<<<<<<<
 The output of: invalid_command_xyz : is
 >>>>>>>>>>>>>>>
-[Process statuc]
+[Process status]
 Stage 1 (invalid_command_xyz): exit 127
 <<<<<<<<<<<<<<<
 The output of: echo alpha beta gamma | tr a-z A-Z : is
 >>>>>>>>>>>>>>>
 ALPHA BETA GAMMA
-[Process statuc]
+[Process status]
 Stage 1 (echo): exit 0
 Stage 2 (tr): exit 0
 <<<<<<<<<<<<<<<
 The output of: cat /etc/passwd | grep bash : is
 >>>>>>>>>>>>>>>
 root:x:0:0::/root:/usr/bin/bash
-[Process statuc]
+[Process status]
 Stage 1 (cat): exit 0
 Stage 2 (grep): exit 0
 <<<<<<<<<<<<<<<

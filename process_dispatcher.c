@@ -166,7 +166,7 @@ static void manager_child(char *args1[], char *args2[], int result_fd) {
     // Exit statuses
     int status1, status2;
     waitpid(pid1, &status1, 0);
-    len += sprintf(msg + len, "[Process statuc]\nStage 1 (%s): exit %d\n", args1[0], exit_code(status1));
+    len += sprintf(msg + len, "[Process status]\nStage 1 (%s): exit %d\n", args1[0], exit_code(status1));
     if (args2 != NULL) {
         waitpid(pid2, &status2, 0);
         len += sprintf(msg + len, "Stage 2 (%s): exit %d\n", args2[0], exit_code(status2));
