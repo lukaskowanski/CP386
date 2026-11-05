@@ -41,7 +41,7 @@ double mainThread(int max_points, int num_threads) {
 
     Count *counts = malloc((num_threads - 1) * sizeof(Count));
     if (counts == NULL) {
-        perror("Failed to allocate memory for counts\n");
+        perror("Failed to allocate memory for counts");
         exit(1);
     }
 
@@ -52,7 +52,7 @@ double mainThread(int max_points, int num_threads) {
 
         int result = pthread_create(&threads[i], NULL, threadFunc, &counts[i]);
         if (result) {
-            perror("Failed to create thread\n");
+            perror("Failed to create thread");
             exit(1);
         }
     }
@@ -60,7 +60,7 @@ double mainThread(int max_points, int num_threads) {
     // Wait for threads to finish...
     for (int i = 0; i < num_threads - 1; i++) {
         if (pthread_join(threads[i], NULL) != 0) {
-            perror("Failed to join thread\n");
+            perror("Failed to join thread");
             exit(1);
         }
     }
@@ -81,25 +81,25 @@ double mainThread(int max_points, int num_threads) {
 int main(int argc, char* argv[]) {
     // Error handling for command line arguments
     if (argc < 3 || argv[1] == NULL || argv[2] == NULL) {
-        printf("usage: pi <integer value for MAX_POINTS> <integer value for NUM_THREADS>\n");
-        return 1;
+        perror("usage: pi <integer value for NUMBER_OF_DARTS> <integer value for NUM_THREADS>");
+        exit(1);
     }
 
-    int MAX_POINTS = strtol(argv[1], NULL, 10);
-    if (MAX_POINTS < 5000000) {
-        printf("The number of darts must be >= 5000000\n");
-        return 1;
+    int NUMBER_OF_DARTS = strtol(argv[1], NULL, 10);
+    if (NUMBER_OF_DARTS < 5000000) {
+        perror("The number of darts must be >= 5000000");
+        exit(1);
     }
 
     int NUM_THREADS = strtol(argv[2], NULL, 10);
     if (NUM_THREADS < 2) {
-        printf("The number of threads must be >= 2\n");
-        return 1;
+        perror("The number of threads must be >= 2");
+        exit(1);
     }
 
-    double pi = mainThread(MAX_POINTS, NUM_THREADS);
+    double pi = mainThread(NUMBER_OF_DARTS, NUM_THREADS);
     
-    printf("Final value of pi: %f\n", pi);
+    printf("Pi = %f\n", pi);
 
     return 0;
 }
