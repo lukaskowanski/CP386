@@ -48,7 +48,10 @@ double mainThread(int max_points, int num_threads) {
     // Create new threads using Count structs
     for (int i = 0; i < num_threads - 1; i++) {
         counts[i].inside_circle = 0;
-        counts[i].total_points = max_points / (num_threads - 1);
+
+        // Distributing points evenly among threads
+        int workers = num_threads - 1;
+        counts[i].total_points = max_points / workers + (i < max_points % workers ? 1 : 0);
 
         int result = pthread_create(&threads[i], NULL, threadFunc, &counts[i]);
         if (result) {
@@ -81,25 +84,25 @@ double mainThread(int max_points, int num_threads) {
 int main(int argc, char* argv[]) {
     // Error handling for command line arguments
     if (argc < 3 || argv[1] == NULL || argv[2] == NULL) {
-        perror("usage: pi <integer value for NUMBER_OF_DARTS> <integer value for NUM_THREADS>");
+        fprintf(stderr, "usage: pi <integer value for NUMBER_OF_DARTS> <integer value for NUM_THREADS>\n");
         exit(1);
     }
 
     int NUMBER_OF_DARTS = strtol(argv[1], NULL, 10);
     if (NUMBER_OF_DARTS < 5000000) {
-        perror("The number of darts must be >= 5000000");
+        fprintf(stderr, "The number of darts must be >= 5000000\n");
         exit(1);
     }
 
     int NUM_THREADS = strtol(argv[2], NULL, 10);
     if (NUM_THREADS < 2) {
-        perror("The number of threads must be >= 2");
+        fprintf(stderr, "The number of threads must be >= 2\n");
         exit(1);
     }
 
     double pi = mainThread(NUMBER_OF_DARTS, NUM_THREADS);
     
-    printf("Pi = %f\n", pi);
+    fprintf(stdout, "Pi = %f\n", pi);
 
     return 0;
 }
