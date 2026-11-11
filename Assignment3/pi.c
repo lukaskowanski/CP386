@@ -87,13 +87,11 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "usage: pi <integer value for NUMBER_OF_DARTS> <integer value for NUM_THREADS>\n");
         exit(1);
     }
-
     int NUMBER_OF_DARTS = strtol(argv[1], NULL, 10);
     if (NUMBER_OF_DARTS < 5000000) {
         fprintf(stderr, "The number of darts must be >= 5000000\n");
         exit(1);
     }
-
     int NUM_THREADS = strtol(argv[2], NULL, 10);
     if (NUM_THREADS < 2) {
         fprintf(stderr, "The number of threads must be >= 2\n");
