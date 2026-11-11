@@ -1,58 +1,106 @@
-// Monte Carlo Problem
+// Monte Carlo pi Problem
 // Libraries
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-// Global Constants
-#define RAND_MAX 50000
-#define NUM_THREADS 4
-
-double INSIDE_CIRCLE = 0;
+// Count struct
+typedef struct {
+    int inside_circle;
+    int total_points;
+} Count;
 
 // Helper function
-double random_double() {
+double randomDouble() {
+    /* Generate a random double between 0 and 1 */
     return random() / ((double)RAND_MAX + 1);
 }
 
 // Thread function
-void* ThreadFunc(void* arg) {
-    // Each thread will generate x amount of random points
-    for (int j = 0; j < RAND_MAX / NUM_THREADS; j++) {
-        double x = random_double() * 2.0 - 1.0;
-        double y = random_double() * 2.0 - 1.0;
+void* threadFunc(void* arg) {
+    /* Thread function generates random points and counts those inside the circle */
+    Count* my_count = (Count*)arg;
 
-        // Check to see if random point is inside circle
+    // Each thread will generate specified number of random points
+    for (int j = 0; j < my_count->total_points; j++) {
+        double x = randomDouble() * 2.0 - 1.0;
+        double y = randomDouble() * 2.0 - 1.0;
+
+        // Check to see if random points are inside circle
         if (x * x + y * y <= 1.0) {
-            INSIDE_CIRCLE++;
+            my_count->inside_circle++;
         }
     }
 
-    printf("Hello from thread! Points inside circle: %f\n", INSIDE_CIRCLE);
-    return NULL;
+    pthread_exit(NULL);
 }
 
-int mainThreads(int num_threads) {
-    pthread_t threads[num_threads];
+double mainThread(int max_points, int num_threads) {
+    /* Main thread function that creates and manages threads */ 
+    pthread_t threads[num_threads - 1];
 
-    // Create new threads
-    for (int i = 0; i < num_threads; i++) {
-        pthread_create(&threads[i], NULL, ThreadFunc, NULL);
+    Count *counts = malloc((num_threads - 1) * sizeof(Count));
+    if (counts == NULL) {
+        perror("Failed to allocate memory for counts");
+        exit(1);
     }
 
-    // Wait for threads to finish
-    for (int i = 0; i < num_threads; i++) {
-        pthread_join(threads[i], NULL);
+    // Create new threads using Count structs
+    for (int i = 0; i < num_threads - 1; i++) {
+        counts[i].inside_circle = 0;
+
+        // Distributing points evenly among threads
+        int workers = num_threads - 1;
+        counts[i].total_points = max_points / workers + (i < max_points % workers ? 1 : 0);
+
+        int result = pthread_create(&threads[i], NULL, threadFunc, &counts[i]);
+        if (result) {
+            perror("Failed to create thread");
+            exit(1);
+        }
+    }
+    
+    // Wait for threads to finish...
+    for (int i = 0; i < num_threads - 1; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            perror("Failed to join thread");
+            exit(1);
+        }
     }
 
-    return 0;
+    // Sums up results from all threads
+    double total_hits = 0.0;
+    for (int i = 0; i < num_threads - 1; i++) {
+        total_hits += counts[i].inside_circle;
+    }
+    double final_pi = total_hits / max_points * 4.0;
+
+    // Freeing the allocated memory for counts
+    free(counts);
+
+    return final_pi;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    // Error handling for command line arguments
+    if (argc < 3 || argv[1] == NULL || argv[2] == NULL) {
+        fprintf(stderr, "usage: pi <integer value for NUMBER_OF_DARTS> <integer value for NUM_THREADS>\n");
+        exit(1);
+    }
+    int NUMBER_OF_DARTS = strtol(argv[1], NULL, 10);
+    if (NUMBER_OF_DARTS < 5000000) {
+        fprintf(stderr, "The number of darts must be >= 5000000\n");
+        exit(1);
+    }
+    int NUM_THREADS = strtol(argv[2], NULL, 10);
+    if (NUM_THREADS < 2) {
+        fprintf(stderr, "The number of threads must be >= 2\n");
+        exit(1);
+    }
 
-    mainThreads(NUM_THREADS);
-
-    printf("Total points inside circle: %f\n", INSIDE_CIRCLE);
+    double pi = mainThread(NUMBER_OF_DARTS, NUM_THREADS);
+    
+    fprintf(stdout, "Pi = %f\n", pi);
 
     return 0;
 }
