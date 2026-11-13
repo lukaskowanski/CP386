@@ -6,7 +6,7 @@
 
 #define NUM_THREADS 10
 
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER; // mutex lock
 
 typedef struct Node {
     int data;
@@ -24,7 +24,7 @@ void push(int v, StackNode **top) {
     StackNode *new_node;
     printf("Thread is running Push() operation for value: %d\n", v);
 
-    // Critical section ??
+    // Critical section
     pthread_mutex_lock(&lock);
     new_node = (StackNode *)malloc(sizeof(StackNode));
     if (new_node == NULL) {
@@ -89,6 +89,12 @@ int main(void) {
     int thread_args[NUM_THREADS];
     int i, j;
 
+    int rc = pthread_mutex_init(&lock, NULL); // initialize mutex
+    if (rc != 0) {
+        fprintf(stderr, "Error initializing mutex: %d\n", rc);
+        return 1;
+    }
+
     // Creating push threads
     for(i = 0; i < NUM_THREADS; i++) {
 	    thread_args[i] = i;
@@ -110,6 +116,7 @@ int main(void) {
 	pthread_join(threads_pop[j], NULL);
 	}
 
-    pthread_mutex_destroy(&lock); // destory mutex
+    pthread_mutex_destroy(&lock); // destroy mutex
+    pthread_exit(NULL);
 	return 0;
 }
