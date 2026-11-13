@@ -6,7 +6,7 @@
 
 #define NUM_THREADS 10
 
-pthread_mutex_t lock; // init mutex lock
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct Node {
     int data;
@@ -27,6 +27,11 @@ void push(int v, StackNode **top) {
     // Critical section ??
     pthread_mutex_lock(&lock);
     new_node = (StackNode *)malloc(sizeof(StackNode));
+    if (new_node == NULL) {
+        perror("malloc");
+        pthread_mutex_unlock(&lock);
+        return;
+    }
     new_node->data = v;
     new_node->next = *top;
     *top = new_node;
@@ -38,21 +43,22 @@ void push(int v, StackNode **top) {
 int pop(StackNode **top) {
 	StackNode *temp;
     
+    pthread_mutex_lock(&lock);
     if (is_empty(*top)) {
         printf("Stack empty \n");
+        pthread_mutex_unlock(&lock);
         return 0;
 	} else {
-        // Critical Section ??
-        pthread_mutex_lock(&lock);
         int data = (*top)->data;
         printf("Thread is running Pop() operation and value is: %d\n",data);
 		temp = *top;
         *top = (*top)->next;
+
         pthread_mutex_unlock(&lock);
 
 		free(temp);
         return data;
-    }
+    }    
 }
 
 // Check if top is NULL
@@ -71,7 +77,7 @@ void* thread_push(void *args) {
 }
 
 // Thread's pop function 
-void* thread_pop() {
+void* thread_pop(void *args) {
     pop(&top);
     return NULL;
 }
@@ -86,12 +92,11 @@ int main(void) {
     // Creating push threads
     for(i = 0; i < NUM_THREADS; i++) {
 	    thread_args[i] = i;
-	    pthread_create(&threads_push[i], NULL, thread_push, (void *)&thread_args[i]);
+	    pthread_create(&threads_push[i], NULL, thread_push, &thread_args[i]);
 	}
 
     // Create Pop Threads
 	for(i = 0; i < NUM_THREADS; i++) {
-        thread_args[i] = i;
 	    pthread_create(&threads_pop[i], NULL, thread_pop, NULL);
 	}
 
@@ -105,6 +110,6 @@ int main(void) {
 	pthread_join(threads_pop[j], NULL);
 	}
 
-    pthread_exit(NULL);
+    pthread_mutex_destroy(&lock); // destory mutex
 	return 0;
 }
