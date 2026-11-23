@@ -10,8 +10,6 @@
 #include <semaphore.h>
 
 sem_t running;
-sem_t even;
-sem_t odd;
 
 void logStart(char *tID); // function to log that a new thread is started
 void logFinish(char *tID); // function to log that a thread has finished its time
@@ -26,12 +24,14 @@ typedef struct thread { // represents a single thread, you can add more members 
 	int state;
 	pthread_t handle;
 	int retVal;
+	sem_t crit; // semaphore for critical section
 } Thread;
 
 // you can add more functions here if required
 
 int threadsLeft(Thread *threads, int threadCount);
 int threadToStart(Thread *threads, int threadCount);
+int threadToRun(Thread *threads, int threadCount, int previousParity);
 void* threadRun(void *t); // the thread function, the code executed by each thread
 int readFile(char *fileName, Thread **threads); // function to read the file content and build array of threads
 
@@ -46,6 +46,13 @@ int main(int argc, char *argv[]) {
 	Thread *threads = NULL;
 	int threadCount = readFile(argv[1], &threads);
 
+	int previousParity = -1; 
+
+	sem_init(&running,  0, 1);
+	for (int k = 0; k < threadCount; k++) {
+		sem_init(&threads[k].crit, 0, 0); // Initialize critical section semaphore for each thread
+	}
+
 	startClock();
 	while (threadsLeft(threads, threadCount) > 0) { // put a suitable condition here to run your program
 		// you can add some suitable code anywhere in this loop if required
@@ -57,8 +64,35 @@ int main(int argc, char *argv[]) {
 			threads[i].state = 1;
 			threads[i].retVal = pthread_create(&(threads[i].handle), NULL,
 					threadRun, &threads[i]);
+
+			if (threads[i].retVal != 0) {
+				printf("Error in creating thread %s...exiting with error code -1\n",
+						threads[i].tid);
+				return -1; // returning -1
+			}
+		}
+
+		if (sem_trywait(&running) == 0) {
+			i = threadToRun(threads, threadCount, previousParity);
+
+			if (i > -1) {
+				previousParity = atoi(threads[i].tid + 1) % 2;
+				sem_post(&threads[i].crit); // Allow the thread to enter its critical section
+			} else {
+				sem_post(&running); 
+			}
 		}
 	}
+
+	for (int k = 0; k < threadCount; k++) {
+		pthread_join(threads[k].handle, NULL);
+		sem_destroy(&threads[k].crit); 
+	}
+
+	free(threads); // Freeing the allocated memory for threads
+
+	sem_destroy(&running);
+
 	return 0;
 }
 
@@ -111,9 +145,9 @@ int readFile(char *fileName, Thread **threads) { // do not modify this method
 		int j = 0;
 		token = strtok(lines[k], ";");
 		while (token != NULL) {
-//if you have extended the Thread struct then here
-//you can do initialization of those additional members
-//or any other action on the Thread members
+			//if you have extended the Thread struct then here
+			//you can do initialization of those additional members
+			//or any other action on the Thread members
 			(*threads)[k].state = 0;
 			if (j == 0)
 				strcpy((*threads)[k].tid, token);
@@ -145,26 +179,65 @@ int threadsLeft(Thread *threads, int threadCount) {
 
 int threadToStart(Thread *threads, int threadCount) {
 	for (int k = 0; k < threadCount; k++) {
-		if (threads[k].state == 0 && threads[k].startTime == getCurrentTime())
+		if (threads[k].state == 0 && threads[k].startTime <= getCurrentTime())
 			return k;
-	}
+		}
+		
 	return -1;
+}
+
+// Added new function 
+int threadToRun(Thread *threads, int threadCount, int previousParity) {
+	int best = -1;
+	int threadsComing = 0;
+
+	for (int k = 0; k < threadCount; k++) {
+		if (threads[k].state == 0) {
+			threadsComing = 1;
+		}
+	}
+
+	// Waiting thread whose parity is different from the previous one
+	for (int k = 0; k < threadCount; k++) {
+		int parity = atoi(threads[k].tid + 1) % 2;
+
+		if (threads[k].state == 1 && (previousParity == -1 || parity != previousParity)) {
+			if (best == -1 || threads[k].startTime < threads[best].startTime) {
+				best = k;
+			}
+		}
+	}
+	if (best != -1) {
+		return best;
+	}
+
+	if (threadsComing) {
+		return -1;
+	}
+
+	// If nothing else is coming, let the remaining threads go (prevents starvation)
+	for (int k = 0; k < threadCount; k++) {
+		if (threads[k].state == 1 && (best == -1 || strcmp(threads[k].tid, threads[best].tid) < 0)) {
+			best = k;
+		}
+	}
+
+	return best;
 }
 
 void* threadRun(void *t) { // implement this function in a suitable way
 	logStart(((Thread*) t)->tid);
 
-// your synchronization logic will appear here
-
+	sem_wait(&(((Thread*) t)->crit)); // Wait for permission to enter critical section
+	
 	// critical section starts here
 	printf("[%ld] Thread %s is in its critical section\n", getCurrentTime(),
-			((Thread*) t)->tid);
+		((Thread*) t)->tid);
 	// critical section ends here
-
-// your synchronization logic will appear here
-
+	
 	logFinish(((Thread*) t)->tid);
 	((Thread*) t)->state = -1;
+	sem_post(&running); // Signal that the thread has finished and allow another thread to run
 	pthread_exit(0);
 }
 
