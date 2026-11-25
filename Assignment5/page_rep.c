@@ -1,1 +1,7 @@
-// Page Replacement Algorithms Comparisons
+// Page Replacement Algorithm Comparisons
+// Libraries
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+int main() {}
